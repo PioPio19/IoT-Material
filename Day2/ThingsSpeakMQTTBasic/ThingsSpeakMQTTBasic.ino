@@ -1,6 +1,8 @@
-char ssid[] = "YOUR_SSID"; //  Change this to your network SSID (name).
-char pass[] = "YOUR_PASS";    // Change this your network password
+char ssid[] = "SSID"; //  Change this to your network SSID (name).
+char pass[] = "PASS";    // Change this your network password
 
+#define mS_To_S_Factor  1000
+#define time_in_S       20  //change here for time interval in seconds
 //------ MQTT broker settings and topics
 const char* mqtt_server = "mqtt3.thingspeak.com";
 
@@ -8,10 +10,11 @@ const char* mqtt_server = "mqtt3.thingspeak.com";
 //-- published settings
 const char* publishTopic ="channels/Channel_ID/publish";   //REPLACE THE Channel_ID WITH YOUR channel ID  
 
-//-- subscribed settings Virtuino command 1   
+//-- subscribed settings
 const char* subscribeTopicFor_Command_1="channels/Channel_ID/subscribe/fields/field1";   //REPLACE THE Channel_ID WITH YOUR channel ID  
+const char* subscribeTopicFor_Command_2="channels/Channel_ID/subscribe/fields/field2";   //REPLACE THE Channel_ID WITH YOUR channel ID  
 
-const unsigned long postingInterval = 20 * 1000; // Post data every 20 seconds.
+const unsigned long postingInterval = time_in_S * mS_To_S_Factor; // Post data every 20 seconds.
 
 //------------------------ Variables-----------------------------------
 //-------------------------------------------------------------------------
@@ -47,11 +50,12 @@ void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-      // client.connect("cliend ID", "username","password") Replace with your Thingspeak MQTT Device Credentials
-    if (client.connect("cliend ID", "username","password")) {  
+      // client.connect("cliendID", "username","password") Replace with your Thingspeak MQTT Device Credentials
+  if (client.connect("cliendID", "username","password")) {  
       Serial.println("connected");
       //client.subscribe(command1_topic);   
       client.subscribe(subscribeTopicFor_Command_1);   // subscribe the topics here
+      client.subscribe(subscribeTopicFor_Command_2);   // subscribe the topics here
       
     } else {
       Serial.print("failed, rc=");
@@ -63,7 +67,7 @@ void reconnect() {
 }
 
 //========================================= messageReceived
-void messageReceived(char* topic, byte* payload, unsigned int length) {
+void messageReceived(char* topic, byte* payload, unsigned int length){
   // Convert topic and payload to String
   String topicStr = String(topic);
   String payloadStr = "";
@@ -73,6 +77,13 @@ void messageReceived(char* topic, byte* payload, unsigned int length) {
   }
 
   Serial.println("Message arrived [" + topicStr + "] " + payloadStr);
+ 
+  //-- check for Virtuino Command 2// Check if the message is for the specific topic
+  if (topicStr == subscribeTopicFor_Command_2) {
+    int v = payloadStr.toInt(); // Convert the payload to an integer and save it to variable v
+    Serial.println("Value sensor = " + String(v));
+    // analogWrite(LedInd,v);
+  }
 }
 
 //========================================= setup
